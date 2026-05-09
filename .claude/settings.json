@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Recurse \"e:\\\\Develop\\\\py_docx2pdfmake\")",
+      "Bash(Select-Object FullName, Length)",
+      "Bash(Format-Table -AutoSize)"
+    ]
+  }
+}
