@@ -1,7 +1,8 @@
 """
 docx2pdfmake
 ============
-Python library for converting .docx files to pdfmake Document Definition Objects (DDO).
+Python library for converting .docx files to pdfmake Document Definition
+Objects (DDO).
 """
 
 from .converter import DocxConverter

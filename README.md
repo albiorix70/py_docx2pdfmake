@@ -1,115 +1,131 @@
 # docx2pdfmake
 
-Python-Bibliothek zum Konvertieren von `.docx`-Dateien in **pdfmake Document Definition Objects (DDO)**.
+Python library that converts `.docx` files into **pdfmake Document Definition Objects (DDO)** — the JSON structure consumed by the [pdfmake](https://pdfmake.github.io/docs/) JavaScript library to generate PDFs.
 
 ## Features
 
 | Feature | Status |
 |---|---|
-| Fließtext (bold, italic, underline, Farbe, Highlight) | ✅ |
-| Überschriften Heading 1–6 | ✅ |
-| Ungeordnete & geordnete Listen (ul/ol, verschachtelt) | ✅ |
-| Tabellen (inkl. Header-Zeile, merged cells) | ✅ |
-| Inline-Bilder (base64 eingebettet) | ✅ |
-| Seitenlayout (Größe, Orientierung, Margins) | ✅ |
-| Header / Footer (inkl. Seitenzahl-Platzhalter) | ✅ |
-| Named Styles aus DOCX → pdfmake `styles`-Block | ✅ |
-| Inline-Overrides (Style aus Run-Formatting) | ✅ |
+| Body text (bold, italic, underline, color, highlight) | ✅ |
+| Headings 1–6 | ✅ |
+| Unordered & ordered lists (ul/ol, nested) | ✅ |
+| Tables (including header row, merged cells) | ✅ |
+| Inline images (base64 embedded) | ✅ |
+| Page layout (size, orientation, margins) | ✅ |
+| Header / footer (including page-number placeholder) | ✅ |
+| Named styles from DOCX → pdfmake `styles` block | ✅ |
+| Inline overrides (formatting from run properties) | ✅ |
 | Hyperlinks | ✅ |
-| Seitenumbrüche | ✅ |
+| Page breaks | ✅ |
 
 ## Installation
 
+The package is not yet on PyPI. Install locally from source:
+
 ```bash
-pip install python-docx       # einzige Abhängigkeit
-# (Paket noch nicht auf PyPI – lokale Installation:)
-pip install -e /pfad/zu/docx2pdfmake
+pip install -e /path/to/py_docx2pdfmake
 ```
 
-## Schnellstart
+The only runtime dependency is `python-docx>=1.1.0`, which is pulled in automatically.
+
+After installation a `docx2pdfmake` command is registered on your `PATH`.
+
+## Quick start
 
 ```python
 from docx2pdfmake import DocxConverter
 
 conv = DocxConverter()
-ddo = conv.convert("mein_dokument.docx")
+ddo = conv.convert("document.docx")
 
 import json
 print(json.dumps(ddo, indent=2, ensure_ascii=False))
 ```
 
-## Optionen
+## Options
 
 ```python
 from docx2pdfmake import DocxConverter, ConversionOptions
 
 opts = ConversionOptions(
-    # Seitenlayout
-    page_size="A4",                  # "A4" | "LETTER" | "A3" …
-    page_orientation="portrait",     # "portrait" | "landscape"
-    margin_top=40.0,                 # in pt
+    # Page layout
+    page_size="A4",                   # "A4" | "LETTER" | "A3" …
+    page_orientation="portrait",      # "portrait" | "landscape"
+    margin_top=40.0,                  # in pt
     margin_right=40.0,
     margin_bottom=60.0,
     margin_left=40.0,
 
     # Styles
-    emit_named_styles=True,          # DOCX-Styles → pdfmake styles-Block
-    emit_inline_overrides=True,      # Run-Formatierung inline einbetten
+    emit_named_styles=True,           # DOCX styles → pdfmake styles block
+    emit_inline_overrides=True,       # embed run formatting inline
 
-    # Bilder
-    embed_images=True,               # base64 einbetten (False = externe Ref)
-    max_image_width=500.0,           # Maximale Bildbreite in pt
-    max_image_height=700.0,
+    # Images
+    embed_images=True,                # True = base64 data URL, False = external ref
+    max_image_width=500.0,            # max image width in pt (None = no limit)
+    max_image_height=700.0,           # max image height in pt (None = no limit)
 
-    # Typografie
+    # Tables
+    default_table_width=None,         # total table width in pt (None = auto)
+
+    # Typography
     default_font="Roboto",
     default_font_size=11.0,
     default_line_height=1.2,
 
-    # Überschriften
+    # Headings (one value per heading level 1–6)
     heading_font_sizes=[22, 18, 16, 14, 13, 12],
-    heading_bold=[True]*6,
-    heading_color=["#000000"]*6,
+    heading_bold=[True] * 6,
+    heading_color=["#000000"] * 6,
+    heading_margin_before=[16, 14, 12, 10, 8, 6],  # pt above heading
+    heading_margin_after=[8, 6, 6, 4, 4, 4],        # pt below heading
 
-    # Header/Footer aus DOCX übernehmen
+    # Header / footer
     include_header=True,
     include_footer=True,
 )
 
 conv = DocxConverter(opts)
-ddo = conv.convert("dokument.docx")
+ddo = conv.convert("document.docx")
 ```
 
-## Convenience-Methoden
+## Convenience methods
 
 ```python
-# Direkt als JSON-String
+# Return JSON string directly
 json_str = conv.convert_to_json("input.docx", indent=2)
 
-# Direkt in Datei schreiben
+# Write directly to a file; returns the Path of the written file
 output_path = conv.convert_to_file("input.docx", "output.json")
 
-# Binary-IO-Objekt (z. B. aus Django-Upload)
+# Pass a binary IO object (e.g. from a Django file upload)
+from io import BytesIO
 with open("input.docx", "rb") as f:
-    ddo = conv.convert(f)
+    ddo = conv.convert(BytesIO(f.read()))
 ```
 
-## Header / Footer mit Seitenzahlen (pdfmake JS)
+Per-call options can override the constructor options:
 
-Der Converter liefert für Header/Footer zwei Varianten:
+```python
+ddo = conv.convert("input.docx", options=ConversionOptions(embed_images=False))
+```
+
+## Header / footer with page numbers (pdfmake JS)
+
+The converter returns two representations for header and footer:
 
 ```python
 ddo = conv.convert("input.docx")
 
-# Statisches Objekt (für server-seitiges pdfmake via node)
-print(ddo.get("header"))   # { "text": "...", "fontSize": 9, ... }
+# Static object — ready for server-side pdfmake (Node.js)
+print(ddo.get("header"))          # {"text": "…", "fontSize": 9, …}
 
-# JS-Function-Body (für client-seitiges pdfmake)
-print(ddo.get("_header_fn_body"))
-# → 'return [{"text": currentPage.toString(), ...}];'
+# JS function body — for client-side pdfmake
+print(ddo.get("_header_fn_body")) # 'return [{"text": currentPage.toString(), …}];'
 ```
 
 In JavaScript:
+
 ```javascript
 const docDefinition = {
   ...ddo,
@@ -121,58 +137,84 @@ pdfMake.createPdf(docDefinition).download('output.pdf');
 
 ## CLI
 
+After installing the package a `docx2pdfmake` command is available:
+
 ```bash
-# JSON auf stdout
-python -m docx2pdfmake input.docx
+# JSON to stdout
+docx2pdfmake input.docx
 
-# In Datei schreiben
-python -m docx2pdfmake input.docx -o output.json
+# Write to file
+docx2pdfmake input.docx -o output.json
 
-# Optionen
-python -m docx2pdfmake input.docx \
+# Common options
+docx2pdfmake input.docx \
     --page-size LETTER \
     --page-orientation landscape \
     --no-embed-images \
+    --no-named-styles \
+    --no-inline-overrides \
     --default-font "Times New Roman" \
-    --default-font-size 10
+    --default-font-size 10 \
+    --indent 4
 ```
 
-## Verwendung im Django-Backend (APEX/REST)
+Alternatively, without installation:
+
+```bash
+python -m docx2pdfmake input.docx
+```
+
+## Django / REST example
 
 ```python
 import json
 from io import BytesIO
+from django.http import JsonResponse
 from docx2pdfmake import DocxConverter, ConversionOptions
 
 def docx_to_pdfmake_view(request):
     docx_file = request.FILES["file"]
     opts = ConversionOptions(embed_images=True)
     conv = DocxConverter(opts)
-    
-    buffer = BytesIO(docx_file.read())
-    ddo = conv.convert(buffer)
-    
+    ddo = conv.convert(BytesIO(docx_file.read()))
     return JsonResponse(ddo)
 ```
 
-## Architektur
+## Architecture
 
 ```
-docx2pdfmake/
-├── __init__.py          # Öffentliche API
-├── converter.py         # DocxConverter – Einstiegspunkt
-├── models.py            # ConversionOptions (Dataclass)
-├── style_resolver.py    # DOCX-Styles → pdfmake-styles-Block + Inline-Lookup
-├── image_handler.py     # Bild-Extraktion + base64-Enkodierung
-├── content_builder.py   # Paragraphen, Listen, Tabellen → pdfmake-Nodes
-├── header_footer.py     # Header/Footer-Extraktion
-└── cli.py               # CLI-Interface (python -m docx2pdfmake)
+DocxConverter.convert(source)
+  └── StyleResolver(doc, opts)      — builds style name/props cache
+  └── ImageHandler(doc, opts)       — pre-loads all images as base64
+  └── ContentBuilder(doc, sr, ih, opts)
+        ├── _process_body()          — iterates body children
+        ├── _process_paragraph()     — text, headings, images
+        ├── _collect_list()          — groups consecutive list items
+        ├── _build_list_tree()       — builds ul/ol pdfmake nodes
+        └── _process_table()         — table → pdfmake table node
+  └── HeaderFooterExtractor(doc, opts)
+        └── returns { static, fn_body } for JS usage
 ```
 
-## Bekannte Einschränkungen
+Module layout:
 
-- **Verschachtelte Tabellen** (Tabelle in Tabellenzelle) werden vereinfacht
-- **Textfelder / Shapes** (DrawingML) werden nicht konvertiert
-- **Formeln** (OMML) werden übersprungen
-- **Benutzerdefinierte Nummerierungen** mit komplexen Overrides können auf `ul` fallen
-- **Bidi-Text** (Arabisch, Hebräisch) wird übergeben, aber nicht explizit gespiegelt
+```
+src/docx2pdfmake/
+├── __init__.py          # public API: DocxConverter, ConversionOptions
+├── __main__.py          # python -m docx2pdfmake entry point
+├── converter.py         # DocxConverter — main entry point
+├── models.py            # ConversionOptions dataclass
+├── style_resolver.py    # DOCX styles → pdfmake styles block + inline lookup
+├── image_handler.py     # image extraction + base64 encoding
+├── content_builder.py   # paragraphs, lists, tables → pdfmake nodes
+├── header_footer.py     # header/footer extraction
+└── cli.py               # argparse CLI
+```
+
+## Known limitations
+
+- **Nested tables** (table inside a table cell) are flattened
+- **Text boxes / Shapes** (DrawingML) are not converted
+- **Equations** (OMML) are skipped
+- **Custom numbering** with complex overrides may fall back to `ul`
+- **Bidi text** (Arabic, Hebrew) is passed through but not explicitly mirrored

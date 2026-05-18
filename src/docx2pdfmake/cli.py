@@ -31,7 +31,8 @@ def main(argv=None):
         help="Output file (default: stdout)",
         default=None,
     )
-    parser.add_argument("--page-size", default="A4", help="Page size (default: A4)")
+    parser.add_argument("--page-size", default="A4", 
+                        help="Page size (default: A4)")
     parser.add_argument(
         "--page-orientation",
         choices=["portrait", "landscape"],

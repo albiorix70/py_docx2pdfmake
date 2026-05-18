@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from docx import Document
+from docx.document import Document as DocxDocument
 from docx.oxml.ns import qn
 from docx.table import Table, _Cell
 from docx.text.paragraph import Paragraph
@@ -24,7 +24,7 @@ from .models import ConversionOptions
 from .style_resolver import StyleResolver
 
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# ── Constants ───────────────────────────────────────────────────────────────
 
 _ALIGNMENT_MAP = {
     "center": "center",
@@ -42,7 +42,7 @@ class ContentBuilder:
 
     def __init__(
         self,
-        doc: Document,
+        doc: DocxDocument,
         style_resolver: StyleResolver,
         image_handler: ImageHandler,
         opts: ConversionOptions,
@@ -52,7 +52,7 @@ class ContentBuilder:
         self._ih = image_handler
         self._opts = opts
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    # ── Public API ─────────────────────────────────────────────────────────
 
     def build(self) -> list:
         """Returns the complete pdfmake content array."""
@@ -60,7 +60,7 @@ class ContentBuilder:
         self._process_body(self._doc.element.body, content)
         return content
 
-    # ── Iteration ─────────────────────────────────────────────────────────────
+    # ── Iteration ──────────────────────────────────────────────────────────
 
     def _process_body(self, body, content: list):
         """Iterates over the direct children of the body element."""
@@ -88,7 +88,7 @@ class ContentBuilder:
 
             i += 1
 
-    # ── Paragraphs ────────────────────────────────────────────────────────────
+    # ── Paragraphs ─────────────────────────────────────────────────────────
 
     def _process_paragraph(self, para: Paragraph) -> Optional[Any]:
         """Processes a paragraph → pdfmake node."""
@@ -234,7 +234,7 @@ class ContentBuilder:
 
         return node
 
-    # ── Lists ─────────────────────────────────────────────────────────────────
+    # ── Lists ──────────────────────────────────────────────────────────────
 
     def _is_list_item(self, para: Paragraph) -> bool:
         """Returns True if the paragraph is a list item."""
@@ -254,7 +254,11 @@ class ContentBuilder:
         ilvl_el = num_pr.find(qn("w:ilvl"))
         num_id_el = num_pr.find(qn("w:numId"))
         ilvl = int(ilvl_el.get(qn("w:val"), "0")) if ilvl_el is not None else 0
-        num_id = int(num_id_el.get(qn("w:val"), "0")) if num_id_el is not None else 0
+        num_id = (
+            int(num_id_el.get(qn("w:val"), "0"))
+            if num_id_el is not None
+            else 0
+        )
         return ilvl, num_id
 
     def _is_ordered(self, num_id: int, ilvl: int) -> bool:
@@ -282,13 +286,18 @@ class ContentBuilder:
                 return False
             abs_id = abs_ref.get(qn("w:val"))
 
-            abs_num = numbering._element.find(
-                f'.//{qn("w:abstractNum")}[@{qn("w:abstractNumId")}="{abs_id}"]'
+            abs_xpath = (
+                f'.//{qn("w:abstractNum")}'
+                f'[@{qn("w:abstractNumId")}="{abs_id}"]'
             )
+            abs_num = numbering._element.find(abs_xpath)
             if abs_num is None:
                 for an in numbering._element.findall(qn("w:abstractNum")):
                     aid_el = an.find(qn("w:abstractNumId"))
-                    if aid_el is not None and aid_el.get(qn("w:val")) == abs_id:
+                    if (
+                        aid_el is not None
+                        and aid_el.get(qn("w:val")) == abs_id
+                    ):
                         abs_num = an
                         break
             if abs_num is None:
@@ -332,7 +341,9 @@ class ContentBuilder:
         nodes = self._build_list_tree(items)
         return nodes, i - 1  # -1 because the caller increments i
 
-    def _build_list_tree(self, items: list[tuple[int, int, Paragraph]]) -> list:
+    def _build_list_tree(
+        self, items: list[tuple[int, int, Paragraph]]
+    ) -> list:
         """Builds a pdfmake-compatible list node (possibly nested)."""
         if not items:
             return []
@@ -350,7 +361,10 @@ class ContentBuilder:
 
             # Entry text
             inline_nodes = self._build_inline_nodes(para)
-            text = _flatten_text(inline_nodes) if len(inline_nodes) == 1 and isinstance(inline_nodes[0], str) else inline_nodes
+            if len(inline_nodes) == 1 and isinstance(inline_nodes[0], str):
+                text = _flatten_text(inline_nodes)
+            else:
+                text = inline_nodes
 
             # Collect children (deeper levels)
             children_items = []
@@ -359,12 +373,12 @@ class ContentBuilder:
                 children_items.append(items[j])
                 j += 1
 
-            is_ord = self._is_ordered(num_id, ilvl)
-
             if children_items:
                 # Children as sub-list
-                sub_nodes = self._build_list_tree_recursive(children_items, ilvl + 1)
-                item_content = [{"text": text}] if not isinstance(text, list) else [{"text": text}]
+                sub_nodes = self._build_list_tree_recursive(
+                    children_items, ilvl + 1
+                )
+                item_content = [{"text": text}]
                 item_content.extend(sub_nodes)
                 root_nodes.append(item_content)
             else:
@@ -380,7 +394,9 @@ class ContentBuilder:
         key = "ol" if is_ord_root else "ul"
         return [{key: root_nodes, "margin": [0, 2, 0, 2]}]
 
-    def _build_list_tree_recursive(self, items: list, expected_ilvl: int) -> list:
+    def _build_list_tree_recursive(
+        self, items: list, expected_ilvl: int
+    ) -> list:
         """Recursive builder for nested lists."""
         if not items:
             return []
@@ -394,7 +410,12 @@ class ContentBuilder:
                 continue
 
             inline_nodes = self._build_inline_nodes(para)
-            text = inline_nodes if len(inline_nodes) != 1 else (inline_nodes[0] if isinstance(inline_nodes[0], str) else inline_nodes)
+            if len(inline_nodes) != 1:
+                text = inline_nodes
+            elif isinstance(inline_nodes[0], str):
+                text = inline_nodes[0]
+            else:
+                text = inline_nodes
 
             # Collect children
             children_items = []
@@ -403,10 +424,11 @@ class ContentBuilder:
                 children_items.append(items[j])
                 j += 1
 
-            is_ord = self._is_ordered(num_id, ilvl)
             if children_items:
                 sub = self._build_list_tree_recursive(children_items, ilvl + 1)
-                root_nodes.append({"text": text, "stack": sub} if sub else {"text": text})
+                root_nodes.append(
+                    {"text": text, "stack": sub} if sub else {"text": text}
+                )
             else:
                 root_nodes.append({"text": text})
             i = j if children_items else i + 1
@@ -418,7 +440,7 @@ class ContentBuilder:
         key = "ol" if is_ord_root else "ul"
         return [{key: root_nodes}]
 
-    # ── Tables ────────────────────────────────────────────────────────────────
+    # ── Tables ─────────────────────────────────────────────────────────────
 
     def _process_table(self, table: Table) -> Optional[dict]:
         """Processes a table → pdfmake table node."""
@@ -457,7 +479,11 @@ class ContentBuilder:
             if self._is_list_item(para):
                 # Simplify list rendering inside cells
                 inline = self._build_inline_nodes(para)
-                text = _flatten_text(inline) if all(isinstance(n, str) for n in inline) else inline
+                text = (
+                    _flatten_text(inline)
+                    if all(isinstance(n, str) for n in inline)
+                    else inline
+                )
                 stack.append({"text": text, "margin": [2, 1, 2, 1]})
             else:
                 node = self._process_paragraph(para)
@@ -470,7 +496,7 @@ class ContentBuilder:
             return stack[0]
         return {"stack": stack}
 
-    # ── Images ────────────────────────────────────────────────────────────────
+    # ── Images ─────────────────────────────────────────────────────────────
 
     def _extract_images(self, para: Paragraph) -> list:
         """Extracts all images from a paragraph."""
@@ -485,7 +511,7 @@ class ContentBuilder:
                 images.append(img)
         return images
 
-    # ── Helpers ───────────────────────────────────────────────────────────────
+    # ── Helpers ────────────────────────────────────────────────────────────
 
     def _para_alignment(self, para: Paragraph) -> Optional[str]:
         ppr = para._p.find(qn("w:pPr"))
@@ -515,7 +541,7 @@ class ContentBuilder:
             return None
 
 
-# ── Helper functions ──────────────────────────────────────────────────────────
+# ── Helper functions ───────────────────────────────────────────────────────
 
 def _local(tag: str) -> str:
     """Returns the local part of a Clark-notation tag name."""

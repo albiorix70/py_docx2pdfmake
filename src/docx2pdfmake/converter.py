@@ -43,7 +43,7 @@ class DocxConverter:
     def __init__(self, options: ConversionOptions | None = None):
         self._opts = options or ConversionOptions()
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    # ── Public API ────────────────────────────────────────────────────────
 
     def convert(
         self,
@@ -67,7 +67,7 @@ class DocxConverter:
             Complete pdfmake DDO (JSON-serializable).
         """
         opts = options or self._opts
-        doc = Document(source)
+        doc = Document(str(source) if isinstance(source, Path) else source)
 
         # Initialize sub-components
         sr = StyleResolver(doc, opts)
