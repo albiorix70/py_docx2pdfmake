@@ -13,6 +13,7 @@ are supported:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Optional
 
 from docx import Document
@@ -20,6 +21,8 @@ from docx.oxml.ns import qn
 from docx.text.paragraph import Paragraph
 
 from .models import ConversionOptions
+
+logger = logging.getLogger(__name__)
 
 
 class HeaderFooterExtractor:
@@ -87,6 +90,7 @@ class HeaderFooterExtractor:
                 "fn_body": fn_body,
             }
         except Exception:
+            logger.warning("Failed to extract %s", section_type, exc_info=True)
             return None
 
     def _para_to_node(self, para: Paragraph) -> Optional[Any]:

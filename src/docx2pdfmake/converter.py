@@ -7,6 +7,7 @@ Main entry point for DOCX → pdfmake DDO conversion.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, BinaryIO, Union
 
@@ -17,6 +18,8 @@ from .header_footer import HeaderFooterExtractor
 from .image_handler import ImageHandler
 from .models import ConversionOptions
 from .style_resolver import StyleResolver
+
+logger = logging.getLogger(__name__)
 
 
 class DocxConverter:
@@ -67,16 +70,23 @@ class DocxConverter:
             Complete pdfmake DDO (JSON-serializable).
         """
         opts = options or self._opts
+        source_desc = str(source) if isinstance(source, (str, Path)) else repr(source)
+        logger.info("Starting conversion of %s", source_desc)
+
         doc = Document(str(source) if isinstance(source, Path) else source)
 
         # Initialize sub-components
+        logger.debug("Resolving styles")
         sr = StyleResolver(doc, opts)
+        logger.debug("Loading images (embed_images=%s)", opts.embed_images)
         ih = ImageHandler(doc, opts)
         cb = ContentBuilder(doc, sr, ih, opts)
         hfe = HeaderFooterExtractor(doc, opts)
 
         # Build content
+        logger.debug("Building content nodes")
         content = cb.build()
+        logger.debug("Built %d top-level content node(s)", len(content))
 
         # Styles block
         styles = sr.pdfmake_styles_block() if opts.emit_named_styles else {}
@@ -117,6 +127,7 @@ class DocxConverter:
             ddo["footer"] = footer_info["static"]
             ddo["_footer_fn_body"] = footer_info["fn_body"]
 
+        logger.info("Conversion of %s finished", source_desc)
         return ddo
 
     def convert_to_json(
@@ -156,4 +167,5 @@ class DocxConverter:
             ensure_ascii=ensure_ascii,
         )
         output.write_text(json_str, encoding="utf-8")
+        logger.info("Wrote DDO to %s", output)
         return output

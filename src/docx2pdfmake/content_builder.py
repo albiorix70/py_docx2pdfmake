@@ -12,6 +12,7 @@ Supports:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Optional
 
 from docx.document import Document as DocxDocument
@@ -22,6 +23,8 @@ from docx.text.paragraph import Paragraph
 from .image_handler import ImageHandler
 from .models import ConversionOptions
 from .style_resolver import StyleResolver
+
+logger = logging.getLogger(__name__)
 
 
 # ── Constants ───────────────────────────────────────────────────────────────
@@ -58,6 +61,7 @@ class ContentBuilder:
         """Returns the complete pdfmake content array."""
         content: list = []
         self._process_body(self._doc.element.body, content)
+        logger.debug("Content build complete: %d node(s)", len(content))
         return content
 
     # ── Iteration ──────────────────────────────────────────────────────────
@@ -76,6 +80,7 @@ class ContentBuilder:
                 if self._is_list_item(para):
                     nodes, i = self._collect_list(children, i)
                     content.extend(nodes)
+                    i += 1
                     continue
                 node = self._process_paragraph(para)
                 if node is not None:
@@ -470,10 +475,14 @@ class ContentBuilder:
                 "margin": [0, 6, 0, 6],
             }
         except Exception:
+            logger.warning("Failed to process table", exc_info=True)
             return None
 
     def _process_cell(self, cell: _Cell) -> dict:
         """Processes a table cell → pdfmake cell object."""
+        if cell._tc.find(qn("w:tbl")) is not None:
+            logger.warning("Nested table found in cell — flattening (unsupported)")
+
         stack = []
         for para in cell.paragraphs:
             if self._is_list_item(para):

@@ -8,6 +8,7 @@ Reads all styles from the DOCX document and produces:
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Optional
 
@@ -16,6 +17,8 @@ from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 
 from .models import ConversionOptions
+
+logger = logging.getLogger(__name__)
 
 
 # ── Helper functions ──────────────────────────────────────────────────────────
@@ -200,6 +203,7 @@ class StyleResolver:
             props.update(self._extract_run_props_from_style(style))
             if props:
                 self._id_to_props[sid] = props
+        logger.debug("Resolved %d DOCX style(s)", len(self._id_to_name))
 
     def _pdf_name_for(self, style) -> str:
         """Computes a clean pdfmake style name."""

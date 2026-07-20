@@ -8,6 +8,7 @@ or path references.
 from __future__ import annotations
 
 import base64
+import logging
 import mimetypes
 from typing import Optional
 
@@ -15,6 +16,8 @@ from docx import Document
 from docx.oxml.ns import qn
 
 from .models import ConversionOptions
+
+logger = logging.getLogger(__name__)
 
 
 class ImageHandler:
@@ -71,6 +74,7 @@ class ImageHandler:
             node["margin"] = [0, 4, 0, 4]
             return node
         except Exception:
+            logger.warning("Failed to build image node", exc_info=True)
             return None
 
     # ── Internal logic ────────────────────────────────────────────────────────
@@ -88,10 +92,13 @@ class ImageHandler:
                     data = img_part.blob
                     b64 = base64.b64encode(data).decode("ascii")
                     self._cache[r_id] = f"data:{mime};base64,{b64}"
+                    logger.debug("Cached image %s (%s, %d bytes)", r_id, mime, len(data))
                 except Exception:
+                    logger.warning("Failed to load image %s", r_id, exc_info=True)
                     self._cache[r_id] = None
+            logger.debug("Image cache built: %d image(s)", len(self._cache))
         except Exception:
-            pass
+            logger.warning("Failed to read image relationships", exc_info=True)
 
     def _clamp_size(
         self,

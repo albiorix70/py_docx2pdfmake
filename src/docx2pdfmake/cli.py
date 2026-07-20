@@ -8,11 +8,14 @@ Usage::
     python -m docx2pdfmake input.docx                  # JSON to stdout
     python -m docx2pdfmake input.docx -o output.json   # write to file
     python -m docx2pdfmake input.docx --page-size LETTER --no-embed-images
+    python -m docx2pdfmake input.docx -v                # with INFO logging
+    python -m docx2pdfmake input.docx -vv                # with DEBUG logging
 """
 
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -70,8 +73,17 @@ def main(argv=None):
         default=2,
         help="JSON indentation (default: 2)",
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="count",
+        default=0,
+        help="Increase log verbosity (-v = INFO, -vv = DEBUG)",
+    )
 
     args = parser.parse_args(argv)
+
+    log_level = {0: logging.WARNING, 1: logging.INFO}.get(args.verbose, logging.DEBUG)
+    logging.basicConfig(level=log_level, format="%(levelname)s %(name)s: %(message)s", stream=sys.stderr)
 
     opts = ConversionOptions(
         page_size=args.page_size,
