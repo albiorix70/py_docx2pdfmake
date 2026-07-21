@@ -21,7 +21,7 @@ from .models import ConversionOptions
 logger = logging.getLogger(__name__)
 
 
-# ── Helper functions ──────────────────────────────────────────────────────────
+# ── Helper functions ──────────────────────────────────────────────────
 
 def _emu_to_pt(emu: int) -> float:
     """English Metric Units → Points (1 pt = 12700 EMU)."""
@@ -52,7 +52,12 @@ def _parse_color(color_str: Optional[str]) -> Optional[str]:
     return None
 
 
-# ── Main class ────────────────────────────────────────────────────────────────
+def _is_truthy_flag(el) -> bool:
+    """True unless a w:b/w:i/w:strike element explicitly disables itself."""
+    return el.get(qn("w:val"), "true").lower() not in ("0", "false")
+
+
+# ── Main class ────────────────────────────────────────────────────────
 
 class StyleResolver:
     """
@@ -86,7 +91,7 @@ class StyleResolver:
         self._id_to_props: dict[str, dict] = {}
         self._build()
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    # ── Public API ───────────────────────────────────────────────────────
 
     def pdfmake_styles_block(self) -> dict[str, dict]:
         """Returns the complete pdfmake ``styles`` block."""
@@ -121,12 +126,12 @@ class StyleResolver:
 
         # bold
         b = rpr.find(qn("w:b"))
-        if b is not None and b.get(qn("w:val"), "true").lower() not in ("0", "false"):
+        if b is not None and _is_truthy_flag(b):
             props["bold"] = True
 
         # italic
         i = rpr.find(qn("w:i"))
-        if i is not None and i.get(qn("w:val"), "true").lower() not in ("0", "false"):
+        if i is not None and _is_truthy_flag(i):
             props["italics"] = True
 
         # underline
@@ -138,14 +143,15 @@ class StyleResolver:
 
         # strikethrough
         strike = rpr.find(qn("w:strike"))
-        if strike is not None and strike.get(qn("w:val"), "true").lower() not in ("0", "false"):
+        if strike is not None and _is_truthy_flag(strike):
             props["decoration"] = "lineThrough"
 
         # font size (half-points)
         sz = rpr.find(qn("w:sz"))
         if sz is not None:
             try:
-                props["fontSize"] = _half_pt_to_pt(int(sz.get(qn("w:val"), "0")))
+                raw_sz = int(sz.get(qn("w:val"), "0"))
+                props["fontSize"] = _half_pt_to_pt(raw_sz)
             except ValueError:
                 pass
 
@@ -186,7 +192,7 @@ class StyleResolver:
                 pass
         return 0
 
-    # ── Internal build logic ──────────────────────────────────────────────────
+    # ── Internal build logic ──────────────────────────────────────────────
 
     def _build(self):
         """Iterates over all document styles and populates the cache."""
@@ -217,7 +223,9 @@ class StyleResolver:
         parts = clean.split()
         if not parts:
             return "style_" + style.style_id
-        return parts[0][0].lower() + parts[0][1:] + "".join(p.capitalize() for p in parts[1:])
+        head = parts[0][0].lower() + parts[0][1:]
+        tail = "".join(p.capitalize() for p in parts[1:])
+        return head + tail
 
     def _extract_para_props(self, style) -> dict[str, Any]:
         """Extracts paragraph properties (pPr) from a style."""
@@ -288,17 +296,18 @@ class StyleResolver:
             return props
 
         b = rpr.find(qn("w:b"))
-        if b is not None and b.get(qn("w:val"), "true").lower() not in ("0", "false"):
+        if b is not None and _is_truthy_flag(b):
             props["bold"] = True
 
         i = rpr.find(qn("w:i"))
-        if i is not None and i.get(qn("w:val"), "true").lower() not in ("0", "false"):
+        if i is not None and _is_truthy_flag(i):
             props["italics"] = True
 
         sz = rpr.find(qn("w:sz"))
         if sz is not None:
             try:
-                props["fontSize"] = _half_pt_to_pt(int(sz.get(qn("w:val"), "0")))
+                raw_sz = int(sz.get(qn("w:val"), "0"))
+                props["fontSize"] = _half_pt_to_pt(raw_sz)
             except ValueError:
                 pass
 
@@ -331,7 +340,7 @@ class StyleResolver:
         return result
 
 
-# ── Highlight colours ─────────────────────────────────────────────────────────
+# ── Highlight colours ─────────────────────────────────────────────────
 
 _HIGHLIGHT_COLORS = {
     "yellow": "#FFFF00",

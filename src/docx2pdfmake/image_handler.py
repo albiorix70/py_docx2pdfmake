@@ -30,7 +30,7 @@ class ImageHandler:
         self._cache: dict[str, Optional[str]] = {}
         self._build_cache()
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    # ── Public API ───────────────────────────────────────────────────────
 
     def get_image_node(self, inline_or_anchor) -> Optional[dict]:
         """
@@ -77,7 +77,7 @@ class ImageHandler:
             logger.warning("Failed to build image node", exc_info=True)
             return None
 
-    # ── Internal logic ────────────────────────────────────────────────────────
+    # ── Internal logic ───────────────────────────────────────────────────
 
     def _build_cache(self):
         """Reads all image relationships and populates the cache."""
@@ -92,9 +92,14 @@ class ImageHandler:
                     data = img_part.blob
                     b64 = base64.b64encode(data).decode("ascii")
                     self._cache[r_id] = f"data:{mime};base64,{b64}"
-                    logger.debug("Cached image %s (%s, %d bytes)", r_id, mime, len(data))
+                    logger.debug(
+                        "Cached image %s (%s, %d bytes)",
+                        r_id, mime, len(data),
+                    )
                 except Exception:
-                    logger.warning("Failed to load image %s", r_id, exc_info=True)
+                    logger.warning(
+                        "Failed to load image %s", r_id, exc_info=True
+                    )
                     self._cache[r_id] = None
             logger.debug("Image cache built: %d image(s)", len(self._cache))
         except Exception:

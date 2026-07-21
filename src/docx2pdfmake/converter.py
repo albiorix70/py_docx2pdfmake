@@ -70,7 +70,9 @@ class DocxConverter:
             Complete pdfmake DDO (JSON-serializable).
         """
         opts = options or self._opts
-        source_desc = str(source) if isinstance(source, (str, Path)) else repr(source)
+        source_desc = (
+            str(source) if isinstance(source, (str, Path)) else repr(source)
+        )
         logger.info("Starting conversion of %s", source_desc)
 
         doc = Document(str(source) if isinstance(source, Path) else source)

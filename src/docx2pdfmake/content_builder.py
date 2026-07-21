@@ -481,7 +481,9 @@ class ContentBuilder:
     def _process_cell(self, cell: _Cell) -> dict:
         """Processes a table cell → pdfmake cell object."""
         if cell._tc.find(qn("w:tbl")) is not None:
-            logger.warning("Nested table found in cell — flattening (unsupported)")
+            logger.warning(
+                "Nested table found in cell — flattening (unsupported)"
+            )
 
         stack = []
         for para in cell.paragraphs:

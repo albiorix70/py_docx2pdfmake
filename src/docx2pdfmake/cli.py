@@ -34,7 +34,7 @@ def main(argv=None):
         help="Output file (default: stdout)",
         default=None,
     )
-    parser.add_argument("--page-size", default="A4", 
+    parser.add_argument("--page-size", default="A4",
                         help="Page size (default: A4)")
     parser.add_argument(
         "--page-orientation",
@@ -82,8 +82,14 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    log_level = {0: logging.WARNING, 1: logging.INFO}.get(args.verbose, logging.DEBUG)
-    logging.basicConfig(level=log_level, format="%(levelname)s %(name)s: %(message)s", stream=sys.stderr)
+    log_level = {0: logging.WARNING, 1: logging.INFO}.get(
+        args.verbose, logging.DEBUG
+    )
+    logging.basicConfig(
+        level=log_level,
+        format="%(levelname)s %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
 
     opts = ConversionOptions(
         page_size=args.page_size,

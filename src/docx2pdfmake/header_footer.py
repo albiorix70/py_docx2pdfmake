@@ -32,7 +32,7 @@ class HeaderFooterExtractor:
         self._doc = doc
         self._opts = opts
 
-    # ── Public API ────────────────────────────────────────────────────────────
+    # ── Public API ───────────────────────────────────────────────────────
 
     def get_header(self) -> Optional[dict]:
         """
@@ -49,7 +49,7 @@ class HeaderFooterExtractor:
             return None
         return self._extract_section("footer")
 
-    # ── Internal logic ────────────────────────────────────────────────────────
+    # ── Internal logic ───────────────────────────────────────────────────
 
     def _extract_section(self, section_type: str) -> Optional[dict]:
         """Generic extractor for header/footer."""
@@ -126,7 +126,11 @@ class HeaderFooterExtractor:
 
         # Alignment
         alignment = self._para_alignment(para)
-        node: dict[str, Any] = {"text": text, "fontSize": 9, "color": "#888888"}
+        node: dict[str, Any] = {
+            "text": text,
+            "fontSize": 9,
+            "color": "#888888",
+        }
         if alignment:
             node["alignment"] = alignment
         node["margin"] = [40, 10, 40, 0]
@@ -135,7 +139,8 @@ class HeaderFooterExtractor:
     def _make_fn_body(self, nodes: list, section_type: str) -> str:
         """
         Builds the string body of a pdfmake header/footer function.
-        Page number placeholders are replaced with pdfmake currentPage expressions.
+        Page number placeholders are replaced with pdfmake currentPage
+        expressions.
 
         Usage in pdfmake::
 
@@ -162,7 +167,12 @@ class HeaderFooterExtractor:
         jc = ppr.find(qn("w:jc"))
         if jc is None:
             return None
-        _MAP = {"center": "center", "right": "right", "both": "justify", "left": "left"}
+        _MAP = {
+            "center": "center",
+            "right": "right",
+            "both": "justify",
+            "left": "left",
+        }
         return _MAP.get(jc.get(qn("w:val"), ""), None)
 
 

@@ -22,7 +22,7 @@ class ConversionOptions:
     # ── Styles ──────────────────────────────────────────────────────────────
     # Carry named styles from the DOCX into the pdfmake styles block
     emit_named_styles: bool = True
-    # Inline formatting (bold, italic, underline …) applied directly to the 
+    # Inline formatting (bold, italic, underline …) applied directly to the
     # text object
     emit_inline_overrides: bool = True
 
